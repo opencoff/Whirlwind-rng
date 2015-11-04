@@ -1,0 +1,9 @@
+*.[1-9].gz
+*.[oda]
+t-ww
+bench-ww
+*~
+.*.sw[po]
+.sw[po]
+cscope.*
+
