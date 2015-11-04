@@ -14,10 +14,11 @@ the paper in the following ways:
 * Uses keyed blake2b for hash reseeding
 * Requires the caller to provide an initialization seed ("IV")
 
-
 This implementation uses an explicit state argument for every
 function. Thus, this is fully thread-safe.
 
-_paper: http://www.ieee-security.org/TC/SP2014/papers/Not-So-RandomNumbersinVirtualizedLinuxandtheWhirlwindRNG.pdf
+The blake2b implementation is borrowed from libsodium.
+
+.. _paper: http://www.ieee-security.org/TC/SP2014/papers/Not-So-RandomNumbersinVirtualizedLinuxandtheWhirlwindRNG.pdf
 
 .. vim: ft=rst:sw=4:ts=4:tw=68:
