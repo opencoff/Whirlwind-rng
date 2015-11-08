@@ -205,6 +205,12 @@ update_seed(ww_seed* s, uint64_t inp)
  * Keep this as a macro! We need the C preprocessor to generate
  * proper values for __COUNTER__.
  */
+#ifdef __OpenBSD__
+#ifndef __COUNTER__
+#define __COUNTER__   __LINE__
+#endif
+#endif
+
 #define init_seed(ss, dd, iv, ivsiz) do {   \
                                         blake2b_state s;                        \
                                         ww_init_temp zz = { .dom = dd,          \
