@@ -39,7 +39,6 @@ t-ww: t-ww.o $(lib)
 bench-ww: bench-ww.o $(lib)
 	$(CC) -o $@ $(LDFLAGS) $^
 
-
 $(lib): $(libobjs)
 	-rm -f $@
 	$(AR) $(ARFLAGS) $@ $^

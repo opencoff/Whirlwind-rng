@@ -259,7 +259,7 @@ ww_init(ww_state* ww, void* iv, size_t ivsiz)
 
 
         for (j = 0; j < k; ++j) {
-            a = (j / (cc+1)) - (a * i);
+            a = (cc * (j+1)) - (a * i);
         }
     }
 
