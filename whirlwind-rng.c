@@ -107,7 +107,6 @@ static inline uint64_t read_tsc(void)
  * Handy defines.
  */
 #define __sys_get_cycle_counter()   read_tsc()
-#define HASH_SIZE                   WW_SEED_BYTES
 
 
 /*
@@ -142,10 +141,10 @@ hash_seed(ww_seed* d)
 {
     blake2b_state s;
 
-    blake2b_init(&s, HASH_SIZE);
+    blake2b_init(&s, WW_SEED_BYTES);
     blake2b_update(&s, d->seed, sizeof d->seed);
     blake2b_update(&s, (const uint8_t*)d->inp,  sizeof d->inp);
-    blake2b_final(&s,  d->seed, HASH_SIZE);
+    blake2b_final(&s,  d->seed, WW_SEED_BYTES);
     memz(&s, sizeof s);
 }
 
@@ -158,9 +157,9 @@ hash_buffer(uint8_t* obuf, void* inbuf, size_t n)
 {
     blake2b_state s;
 
-    blake2b_init(&s, HASH_SIZE);
+    blake2b_init(&s, WW_SEED_BYTES);
     blake2b_update(&s, inbuf, n);
-    blake2b_final(&s, obuf, HASH_SIZE);
+    blake2b_final(&s, obuf, WW_SEED_BYTES);
 
     memz(&s, sizeof s);
 }
@@ -176,9 +175,9 @@ hash_reseed(uint8_t* seed)
     static const uint8_t zero[1024] = { 0 };
     blake2b_state s;
 
-    blake2b_init_key(&s, HASH_SIZE, seed, HASH_SIZE);
+    blake2b_init_key(&s, WW_SEED_BYTES, seed, WW_SEED_BYTES);
     blake2b_update(&s, zero, sizeof zero);
-    blake2b_final(&s,  seed, HASH_SIZE);
+    blake2b_final(&s,  seed, WW_SEED_BYTES);
 
     memz(&s, sizeof s);
 }
@@ -217,10 +216,10 @@ update_seed(ww_seed* s, uint64_t inp)
                                                             .pid = getpid(),    \
                                                             .ctr = __COUNTER__  \
                                                           };                    \
-                                        blake2b_init(&s, HASH_SIZE);            \
+                                        blake2b_init(&s, WW_SEED_BYTES);            \
                                         blake2b_update(&s, (const uint8_t*)&zz, sizeof zz);     \
                                         blake2b_update(&s, iv, ivsiz);          \
-                                        blake2b_final(&s, ss, HASH_SIZE);       \
+                                        blake2b_final(&s, ss, WW_SEED_BYTES);       \
                                         memz(&s, sizeof s);                     \
                                     } while (0)
 
@@ -247,8 +246,8 @@ ww_init(ww_state* ww, void* iv, size_t ivsiz)
     memset(ww, 0, sizeof *ww);
 
     /* Now, initialize slow and fast seeds */
-    init_seed(ww->slow_seed.seed, 1, iv, ivsiz);
-    init_seed(ww->slow_seed.seed, 2, iv, ivsiz);
+    init_seed(ww->slow.seed, 1, iv, ivsiz);
+    init_seed(ww->fast.seed, 2, iv, ivsiz);
 
     /* Create a data dependent loop */
     for (i = 0; i < L; ++i)  {
@@ -257,13 +256,10 @@ ww_init(ww_state* ww, void* iv, size_t ivsiz)
 
         ww_add_input(ww, cc);
 
-
         for (j = 0; j < k; ++j) {
             a = (cc * (j+1)) - (a * i);
         }
     }
-
-    
 
     /*
      * Add the result of the variable length inner loop to RNG. This won't
@@ -284,7 +280,7 @@ ww_add_input(ww_state* ww, uint64_t inp)
     uint64_t v = ++ww->ctr;
 
     if (0 == (v % WW_SLOW_SEED_MAX)) {
-        ww_seed* s = &ww->slow_seed;
+        ww_seed* s = &ww->slow;
 
         update_seed(s, inp);
 
@@ -293,7 +289,7 @@ ww_add_input(ww_state* ww, uint64_t inp)
             s->chains = 0;
         }
     } else {
-        update_seed(&ww->fast_seed, inp);
+        update_seed(&ww->fast, inp);
     }
 }
 
@@ -307,12 +303,12 @@ void
 ww_random_bytes(ww_state* ww, void* bufx, size_t n)
 {
     ww_output_state o;
-    uint8_t ohash[HASH_SIZE];
+    uint8_t ohash[WW_SEED_BYTES];
 
     uint8_t* buf = (uint8_t*)bufx;
-    size_t blks  = (n / HASH_SIZE) + (0 != (n % HASH_SIZE));
+    size_t blks  = (n / WW_SEED_BYTES) + (0 != (n % WW_SEED_BYTES));
 
-    memcpy(o.s1, ww->fast_seed.seed, sizeof o.s1);
+    memcpy(o.s1, ww->fast.seed, sizeof o.s1);
     memcpy(o.s2, ww->oseed,          sizeof o.s2);
 
     o.dom = 3;
@@ -329,8 +325,8 @@ ww_random_bytes(ww_state* ww, void* bufx, size_t n)
 
         hash_buffer(buf, &o, sizeof o);
 
-        buf  += HASH_SIZE;
-        n    -= HASH_SIZE;
+        buf  += WW_SEED_BYTES;
+        n    -= WW_SEED_BYTES;
         blks -= 1;
     }
 
@@ -344,7 +340,7 @@ ww_random_bytes(ww_state* ww, void* bufx, size_t n)
     memz(&o,    sizeof o);
 
     /* Update the fast seed */
-    hash_reseed(ww->fast_seed.seed);
+    hash_reseed(ww->fast.seed);
 }
 
 

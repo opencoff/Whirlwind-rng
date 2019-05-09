@@ -69,8 +69,8 @@ typedef struct ww_seed ww_seed;
 struct ww_state
 {
     uint64_t ctr;
-    ww_seed  slow_seed;
-    ww_seed  fast_seed;
+    ww_seed  slow;
+    ww_seed  fast;
     uint8_t  oseed[WW_SEED_BYTES];
 };
 typedef struct ww_state ww_state;
